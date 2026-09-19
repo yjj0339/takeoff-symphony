@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>模型验证</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#cfe8f7}canvas{display:block}</style>
+<script type="importmap">
+{"imports": {"three": "./vendor/three/three.module.js",
+             "three/addons/": "./vendor/three/addons/"}}
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe8f7);
+const cam = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 3000);
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+// 程序环境贴图（渐变天空，让金属件有反射）
+{
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 32;
+  const g = cv.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 32);
+  grad.addColorStop(0, '#eaf6ff'); grad.addColorStop(0.5, '#cfe8f7'); grad.addColorStop(0.75, '#c9d8c2'); grad.addColorStop(1, '#b6c4ae');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  scene.environment = tex;
+}
+
+scene.add(new THREE.HemisphereLight(0xeaf6ff, 0xb8c9b0, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(150, 220, -80);
+scene.add(sun);
+const sun2 = new THREE.DirectionalLight(0xdfeaff, 0.7);
+sun2.position.set(-120, 80, 100);
+scene.add(sun2);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000),
+  new THREE.MeshLambertMaterial({color:0x9dc48a}));
+ground.rotation.x = -Math.PI/2; ground.position.y = -0.001;
+scene.add(ground);
+const grid = new THREE.GridHelper(240, 24, 0x6fae8a, 0x8fc6a4);
+scene.add(grid);
+
+new GLTFLoader().load('assets/plane.glb', (g) => {
+  const plane = g.scene;
+  plane.position.set(0, 5.68, 0);   // 机身轴心离地；机头朝 -Z
+  scene.add(plane);
+  window.__plane = plane;
+  plane.traverse(o => { if (/FanDisc/.test(o.name)) o.visible = false; });
+  window.__ready = true;
+});
+
+const controls = new OrbitControls(cam, renderer.domElement);
+const V = {
+  threeq: {p:[70, 26, -55],   t:[0, 5, 0]},
+  sideR:  {p:[92, 9, 0],      t:[0, 5.5, 0]},
+  sideL:  {p:[-92, 9, 0],     t:[0, 5.5, 0]},
+  front:  {p:[0, 7, -92],     t:[0, 6, 0]},
+  rear:   {p:[-45, 20, 75],   t:[0, 8, 15]},
+  top:    {p:[0.1, 150, 0.1], t:[0, 5, 0]},
+  engineR:{p:[26, 1, 16],     t:[11.4, 2.4, 2.9]},
+  noseR:  {p:[-16, 8, -46],   t:[0, 6, -24]},
+  gearN:  {p:[10, 1.8, -12],  t:[0, 1.5, -22]},     // 地面上方侧视前起落架
+  gearMR: {p:[14, 1.5, 9],    t:[3.6, 1.2, 2.4]},   // 地面上方侧视主起落架
+  textR:  {p:[26, 8.6, -10],  t:[0, 8.4, -12]},     // 右舷 SKYLINE AIR 特写
+  textL:  {p:[-26, 8.6, -10], t:[0, 8.4, -12]},     // 左舷
+  finR:   {p:[-16, 12, 52],   t:[0, 11, 26]},       // 垂尾右面
+  finL:   {p:[16, 12, 52],    t:[0, 11, 26]},       // 垂尾左面
+};
+window.__setView = (name) => {
+  const v = V[name] || V.threeq;
+  cam.position.set(...v.p);
+  controls.target.set(...v.t);
+  controls.update();
+  return !!V[name];
+};
+const qs = new URLSearchParams(location.search);
+window.__setView(qs.get('view') || 'threeq');
+
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene, cam); })();
+</script>
+</body>
+</html>

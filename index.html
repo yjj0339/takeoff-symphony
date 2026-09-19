@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>凌云起飞 · Takeoff Symphony</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{"imports": {"three": "./vendor/three/three.module.js",
+             "three/addons/": "./vendor/three/addons/"}}
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="cloudVeil"></div>
+
+<!-- 开场封面 -->
+<div id="cover">
+  <div class="cover-card">
+    <div class="cover-kicker">SKYLINE AIR · 凌云航空</div>
+    <h1>凌云起飞</h1>
+    <p class="cover-sub">宽体客机 B-2026 · 完整起飞全程<br><span>滑行 → 对正 → 加速 → 抬轮 → 穿云 → 巡航</span></p>
+    <button id="btnStart">▶ 开始起飞</button>
+    <div class="cover-tip">建议开启声音 · 支持手机竖屏</div>
+  </div>
+  <div class="cover-badge">Blender 精细建模 · 实时三维</div>
+</div>
+
+<!-- HUD -->
+<header id="hudTop">
+  <div class="brand"><span class="brand-mark">✈</span><b>凌云航空</b><i>SKYLINE AIR</i></div>
+  <div class="phase"><div id="phaseName">登机准备</div><div id="phaseSub">Boarding · B-2026</div></div>
+  <div class="cam-label" id="camLabel">自动导播</div>
+</header>
+
+<div id="hudData">
+  <div class="datum"><label>空速</label><b id="dSpeed">0</b><u>km/h</u></div>
+  <div class="datum"><label>高度</label><b id="dAlt">0</b><u>m</u></div>
+  <div class="datum"><label>推力</label><b id="dN1">22</b><u>% N1</u></div>
+  <div class="datum"><label>阶段</label><b id="dGear">起落架放下</b></div>
+</div>
+
+<div id="hudCtrl">
+  <button id="btnPlay" title="播放/暂停">⏸</button>
+  <button id="btnReplay" title="重播">↺</button>
+  <button id="btnSound" title="声音">🔊</button>
+  <button id="btnCam" title="切换机位">🎬</button>
+  <button id="btnFree" title="自由视角">🕹</button>
+</div>
+
+<div id="progressWrap">
+  <input type="range" id="progress" min="0" max="1000" value="0">
+  <div id="progressPhase"></div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
