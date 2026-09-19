@@ -48,3 +48,19 @@
 - 起落架 y=前后 z=高度，别混槽；轮子/bogie/短舱/风扇是 pivot 局部建模 → mesh_from_bm(local_space=True)
 - 金属材质必须配 scene.environment 否则渲染黑
 - 视觉验收走 documents:visual-judge 子代理 + playwright 截图（Read 图片会传 CDN 看不了，子代理可以）
+
+## 二轮升级（用户反馈：速度感/画质/白色小点）
+- 速度感：旧时间线 spd 关键帧与位移不同步（表显快、实际慢=滑行感）。重写 flight.js：
+  地面滑跑 z(t)=∫v(t)dt、空中沿航向积分，表显速度==真实位移（数值验证 0.5% 内）。
+  VR=296km/h、加速度 3.1m/s²、巡航爬升率 18m/s。
+- 白色小光点两源：①跑道标线离地 3cm，远距深度精度不足 z-fighting 闪烁 → logarithmicDepthBuffer；
+  ②云贴图 fbm 阈值碎斑 → 重写成团泡状（多径向渐变球叠加+椭圆边缘衰减）。
+- 画质：PCFSoft 阴影（太阳 shadow camera 每帧跟随飞机）、贴图 anisotropy 拉满、
+  pixelRatio min(max(dpr,1.35),2) 桌面超采样。
+- 云海：sprite 团铺不满高空视野 → 30km 云海大平面（canvas 噪声纹理，Basic 材质，
+  opacity 随飞机高度 285→390m 渐显，纹理 offset 锚定世界坐标防滑动）。
+  sprite renderOrder=3 叠在云海上保立体。
+- 发灰元凶：ACES 会把 <1 颜色压灰（天空 shader 无 tonemapping chunk 所以清亮、Basic 云海发灰）。
+  云海/云朵 material.toneMapped=false 即纯白。
+- 云海平面注意：地面阶段必须 opacity=0（随 alt 渐显），否则横在镜头前。
+- 线上部署：push 断网走 contents API 批量 PUT（tools/api_put.js，先 GET sha 再 PUT）。
