@@ -42,6 +42,25 @@ const app = {
 };
 
 let orbit = null;
+
+// ---- 封面开始（点击可能在资源就绪前发生 → 顶层接住并排队）----
+let pendingStart = false;
+async function beginShow() {
+  document.getElementById('cover').classList.add('off');
+  document.body.classList.add('playing');
+  try { await audio.start(); } catch (e) { /* 无声环境下继续 */ }
+  app.playing = true;
+  hud.setPlaying(true);
+  hud.toast('凌云航空 B-2026 · 起飞全程 ' + Math.round(DURATION) + ' 秒');
+}
+document.getElementById('btnStart').addEventListener('click', () => {
+  if (app._ready) { beginShow(); return; }
+  pendingStart = true;
+  const btn = document.getElementById('btnStart');
+  btn.textContent = '装载模型中…';
+  btn.style.opacity = 0.75;
+});
+
 async function ready() {
   if (!(loading.airport && loading.plane)) return;
   const q = new URLSearchParams(location.search);
@@ -64,15 +83,9 @@ async function ready() {
     return;
   }
 
-  // ---- 封面开始 ----
-  document.getElementById('btnStart').addEventListener('click', async () => {
-    document.getElementById('cover').classList.add('off');
-    document.body.classList.add('playing');
-    try { await audio.start(); } catch (e) { /* 无声环境下继续 */ }
-    app.playing = true;
-    hud.setPlaying(true);
-    hud.toast('凌云航空 B-2026 · 起飞全程 ' + Math.round(DURATION) + ' 秒');
-  });
+  // ---- 资源就绪：处理排队中的开始请求，随后绑定其余控制 ----
+  app._ready = true;
+  if (pendingStart) { pendingStart = false; beginShow(); }
 
   // ---- 控制 ----
   document.getElementById('btnPlay').onclick = () => {
