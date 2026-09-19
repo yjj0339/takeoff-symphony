@@ -29,10 +29,14 @@
 - [x] vendor 就绪（three.module.js + GLTFLoader + OrbitControls + BufferGeometryUtils）
 - [x] 贴图生成（fuselage 4096 + fin + 云 + 地面材质 + 幕墙）
 - [x] 飞机建模 plane.glb（1MB，五轮视觉评审 12/12 通过：飘带/文字方向/垂尾云海/起落架触地/金属反光/机头圆润）
-- [ ] 机场建模
-- [ ] three.js 应用
-- [ ] 截图测试
-- [ ] 部署
+- [x] 机场建模 airport.glb（跑道全套几何标线/灯光/航站楼/塔台/廊桥/地形，验收通过）
+- [x] three.js 应用（155s 时间线纯函数求值/15 自动机位/8 手动/自由视角/合成音效/中文 HUD/穿云白幕）
+- [x] 整场演出 9 时刻截图验收通过；手机竖屏验收通过
+- [x] 部署 https://yjj0339.github.io/takeoff-symphony/ （200+MIME 全过；修线上抢点竞态；导航主页已加卡片+二维码）
+
+## 交付后修复
+- 线上竞态：__app 挂顶层早于 GLB 就绪，"开始"按钮 listener 在 ready() 才绑→加载中点击无效。
+  修：listener 移顶层接住排队（按钮变"装载模型中…"），ready() 后自动 beginShow。
 
 ## 坑与教训（边做边记）
 - Blender object 的 matrix_world 创建后不自动刷新，matrix_parent_inverse 拿到过时值 → 部件位移翻倍/丢失。终解：所有 pivot 无旋转，empty_at(loc) 显式局部=世界-父世界累加（world_loc helper）
