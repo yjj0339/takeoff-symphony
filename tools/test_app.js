@@ -9,7 +9,7 @@ const fs = require('fs');
   const errs = [];
   page.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
-  const times = [4, 20, 58, 75, 90, 100, 115, 130, 150];
+  const times = [4, 20, 58, 78, 91, 96, 113, 130, 150];
   await page.goto('http://127.0.0.1:5177/?mode=shot', { waitUntil: 'load' });
   await page.waitForFunction('!!window.__app', { timeout: 40000 });
   await page.waitForTimeout(1000);
