@@ -291,16 +291,25 @@ Image.fromarray(fd_img.astype(np.uint8)).save(os.path.join(OUT, "fan_disc.png"))
 
 # ---------------- 4. 云 sprite ×3 ----------------
 def cloud_png(seed, out):
+    """成团泡状云：多个径向渐变球叠出完整云团，边缘大范围衰减——绝无碎斑小点"""
     s = 256
-    n = fbm(s, s, 5, seed=seed)
+    rng = random.Random(seed)
     yy, xx = np.mgrid[0:s, 0:s].astype(np.float32)
-    rr = np.sqrt(((xx - s / 2) / (s / 2)) ** 2 + ((yy - s / 2 - 12) / (s / 2)) ** 2)
-    fall = np.clip(1.15 - rr, 0, 1) ** 1.6
-    a = np.clip((n - 0.46) * 3.0, 0, 1) * fall
-    a = np.array(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(3)), np.float32) / 255.0
+    a = np.zeros((s, s), np.float32)
+    nb = rng.randint(7, 10)
+    for _ in range(nb):
+        bx = s * 0.5 + (rng.random() - 0.5) * s * 0.50
+        by = s * 0.56 + (rng.random() - 0.5) * s * 0.30
+        br = s * (0.11 + rng.random() * 0.15)
+        d = np.sqrt((xx - bx) ** 2 + (yy - by) ** 2)
+        t = np.clip(1 - d / br, 0, 1)
+        a = np.maximum(a, t * t * (3 - 2 * t))
+    # 椭圆整体边缘衰减（防方形裁切感）
+    rr = np.sqrt(((xx - s / 2) / (s * 0.52)) ** 2 + ((yy - s * 0.55) / (s * 0.40)) ** 2)
+    a *= np.clip(1.08 - rr, 0, 1) ** 1.35
+    a = np.array(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(5)), np.float32) / 255.0
     cl = np.zeros((s, s, 4), np.float32)
-    lum = 0.94 + 0.06 * np.clip((n - 0.4), 0, 1)
-    cl[:, :, 0] = 255 * lum; cl[:, :, 1] = 255 * lum; cl[:, :, 2] = 255
+    cl[:, :, 0] = 255; cl[:, :, 1] = 255; cl[:, :, 2] = 255
     cl[:, :, 3] = a * 255
     Image.fromarray(cl.astype(np.uint8)).save(os.path.join(OUT, out))
 
