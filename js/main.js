@@ -9,16 +9,21 @@ import { initHUD } from './hud.js';
 import { parseShotMode, runShotMode } from './shot.js';
 
 const canvas = document.getElementById('stage');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, preserveDrawingBuffer: true,
+  logarithmicDepthBuffer: true,     // 治远处标线 z-fighting 白点闪烁
+});
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio, 1.35), 2));  // 桌面 1x 屏也超采样
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.06;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.5, 9000);
-camera.position.set(196, 26, -880);
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.5, 26000);
+camera.position.set(198, 27, -878);
 
 const env = buildEnvironment(scene, renderer);
 const audio = new EngineAudio();
@@ -42,6 +47,35 @@ const app = {
 };
 
 let orbit = null;
+
+// ---- 画质：阴影 + 各向异性过滤 ----
+function setupQuality() {
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  scene.traverse(o => {
+    if (o.isMesh) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => {
+        if (m.map) { m.map.anisotropy = maxAniso; m.map.needsUpdate = true; }
+      });
+    }
+  });
+  // 飞机投影
+  plane.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  // 地面接收
+  ['Ground', 'Runway', 'RunwayMark', 'Taxiways', 'Apron', 'ApronMark', 'Fields'].forEach(n => {
+    const m = scene.getObjectByName(n);
+    if (m) m.traverse ? m.traverse(c => { if (c.isMesh) c.receiveShadow = true; }) : 0;
+    if (m && m.isMesh) m.receiveShadow = true;
+  });
+  // 太阳阴影（跟随飞机）
+  const sun = env.sun;
+  sun.castShadow = true;
+  const sm = innerWidth < 700 ? 1024 : 2048;
+  sun.shadow.mapSize.set(sm, sm);
+  Object.assign(sun.shadow.camera, { left: -140, right: 140, top: 140, bottom: -140, near: 100, far: 3000 });
+  sun.shadow.bias = -0.0004;
+  scene.add(sun.target);
+}
 
 // ---- 封面开始（点击可能在资源就绪前发生 → 顶层接住并排队）----
 let pendingStart = false;
@@ -85,6 +119,7 @@ async function ready() {
 
   // ---- 资源就绪：处理排队中的开始请求，随后绑定其余控制 ----
   app._ready = true;
+  setupQuality();
   if (pendingStart) { pendingStart = false; beginShow(); }
 
   // ---- 控制 ----
@@ -136,7 +171,11 @@ function frameAt(t, dt) {
   director.update(t, st, dt);
   if (director.mode === 'free' && orbit) orbit.update();
   audio.update(st);
-  env.update(t);
+  env.update(t, camera, st);
+  // 阴影相机跟随飞机
+  const pp = plane.root.position;
+  env.sun.position.set(pp.x + 420, pp.y + 500, pp.z - 750);
+  env.sun.target.position.set(pp.x, pp.y, pp.z);
   document.getElementById('cloudVeil').style.opacity = st.cloudVeil.toFixed(3);
   hud.setPhase(st);
   hud.setData(st);
